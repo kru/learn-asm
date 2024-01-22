@@ -1,3 +1,3 @@
-## This is a homework for [https://www.computerenhance.com/p/table-of-contents](Performance Aware Programming Series)
+## This is a homework for [Performance Aware Programming Series](https://www.computerenhance.com/p/table-of-contents)
 
 TBD
