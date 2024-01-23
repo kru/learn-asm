@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 var opcodes = map[string]string{
@@ -43,51 +44,33 @@ func main() {
 		bytes = append(bytes, scanner.Bytes()...)
 	}
 
-	bit16 := make([][]uint8, 0)
-	var bits []uint8
-	for i := 0; i < len(bytes); i++ {
-		bits = append(bits, asBits(bytes[i])...)
-		if i%2 != 0 {
-			bit16 = append(bit16, append([]uint8{}, bits...))
+	bit16 := make([][]string, 0)
+	var bits []string
+	i := 0
+	for i < len(bytes) {
+		bits = append(bits, asBits(bytes[i])+asBits(bytes[i+1]))
+		if i%2 == 0 {
+			bit16 = append(bit16, append([]string{}, bits...))
 			bits = bits[:0]
 		}
+		i += 2
 	}
 
 	// loop over bit16 to decode it to assembly instructions
 	for j := 0; j < len(bit16); j++ {
-		line := bit16[j]
-		var inst, opcode, reg, rm string
-		var d, w int
-		for k := 0; k < len(line); k++ {
-			if len(opcode) < 6 {
-				if line[k] == 1 {
-					opcode += "1"
-				} else {
-					opcode += "0"
-				}
-			} else if k == 6 {
-				d = int(line[k])
-			} else if k == 7 {
-				w = int(line[k])
-			} else if k == 8 || k == 9 {
-				//do MOD later
-			} else if k > 9 && k <= 12 {
-				if line[k] == 1 {
-					reg += "1"
-				} else {
-					reg += "0"
-				}
-			} else if k > 12 && k <= 15 {
-				if line[k] == 1 {
-					rm += "1"
-				} else {
-					rm += "0"
-				}
-			}
+		line := bit16[j][0]
+		opcode := line[0:6]
+		reg := line[10:13]
+		rm := line[13:16]
+		d := line[6]
+		var inst string
+		w, err := strconv.Atoi(string(line[7]))
+		if err != nil {
+			fmt.Println(line, err)
 		}
 		dest := regs[rm][w]
 		source := regs[reg][w]
-		if d == 0 {
+		if d == '0' {
 			inst += fmt.Sprintf("%s %s, %s", opcodes[opcode], dest, source)
 		} else {
 			inst += fmt.Sprintf("%s %s, %s", opcodes[opcode], source, dest)
@@ -96,10 +79,10 @@ func main() {
 	}
 }
 
-func asBits(val uint8) []uint8 {
-	bits := []uint8{}
+func asBits(val uint8) string {
+	bits := ""
 	for i := 0; i < 8; i++ {
-		bits = append([]uint8{val & 0x1}, bits...)
+		bits = fmt.Sprintf("%x%s", val&0x1, bits)
 		val = val >> 1
 	}
 	return bits
