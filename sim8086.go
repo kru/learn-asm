@@ -3,12 +3,16 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 )
 
+var regormem = "100010"
+var itoreg = "1011"
 var opcodes = map[string]string{
-	"100010": "mov",
+	regormem: "mov",
+	itoreg:   "mov",
 }
 
 var regs = map[string][]string{
@@ -55,27 +59,45 @@ func main() {
 		}
 		i += 2
 	}
+	fmt.Println(bytes, bit16)
 
 	// loop over bit16 to decode it to assembly instructions
 	for j := 0; j < len(bit16); j++ {
 		line := bit16[j][0]
-		opcode := line[0:6]
-		reg := line[10:13]
-		rm := line[13:16]
-		d := line[6]
+		opcode := line[0:4]
+		if opcode != itoreg {
+			opcode = line[0:6]
+		}
+
 		var inst string
-		w, err := strconv.Atoi(string(line[7]))
-		if err != nil {
-			fmt.Println(line, err)
+		switch opcode {
+		case itoreg:
+			w, err := strconv.Atoi(string(line[4]))
+			if err != nil {
+				fmt.Println(line, err)
+			}
+			reg := line[5:8]
+			data := toDecimal(line[8:16])
+			inst += fmt.Sprintf("%s %s %d", opcodes[opcode], regs[reg][w], data)
+			fmt.Println(inst)
+
+		case regormem:
+			reg := line[10:13]
+			rm := line[13:16]
+			d := line[6]
+			w, err := strconv.Atoi(string(line[7]))
+			if err != nil {
+				fmt.Println(line, err)
+			}
+			dest := regs[rm][w]
+			source := regs[reg][w]
+			if d == '0' {
+				inst += fmt.Sprintf("%s %s, %s", opcodes[opcode], dest, source)
+			} else {
+				inst += fmt.Sprintf("%s %s, %s", opcodes[opcode], source, dest)
+			}
+			fmt.Println(inst)
 		}
-		dest := regs[rm][w]
-		source := regs[reg][w]
-		if d == '0' {
-			inst += fmt.Sprintf("%s %s, %s", opcodes[opcode], dest, source)
-		} else {
-			inst += fmt.Sprintf("%s %s, %s", opcodes[opcode], source, dest)
-		}
-		fmt.Println(inst)
 	}
 }
 
@@ -86,6 +108,19 @@ func asBits(val uint8) string {
 		val = val >> 1
 	}
 	return bits
+}
+
+func toDecimal(bits string) int {
+	var total int
+
+	for i := 0; i < len(bits); i++ {
+		if bits[i] == '1' {
+			y := float64(len(bits) - 1 - i)
+			total += int(math.Pow(2, y))
+		}
+	}
+
+	return total
 }
 
 func checkErr(err error) {
